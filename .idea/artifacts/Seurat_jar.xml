@@ -1,0 +1,13 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Seurat:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Seurat_jar</output-path>
+    <root id="archive" name="Seurat.jar">
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/Seurat/src/META-INF/MANIFEST.MF" />
+      </element>
+      <element id="module-output" name="Seurat" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/jsc.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/GenomeAnalysisTK-1.5-32-g2761da9/GenomeAnalysisTK.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

@@ -1,0 +1,9 @@
+<component name="CopyrightManager">
+  <copyright>
+    <option name="notice" value="Copyright (c) &amp;#36;today.year by The Translational Genomics Research Institute." />
+    <option name="keyword" value="Copyright" />
+    <option name="allowReplaceKeyword" value="Copyright" />
+    <option name="myName" value="TGen-GATK" />
+    <option name="myLocal" value="true" />
+  </copyright>
+</component>

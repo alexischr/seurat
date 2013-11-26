@@ -1,0 +1,7 @@
+<component name="CopyrightManager">
+  <settings default="TGen-GATK">
+    <module2copyright>
+      <element module="All" copyright="TGen-GATK" />
+    </module2copyright>
+  </settings>
+</component>

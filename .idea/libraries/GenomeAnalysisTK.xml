@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="GenomeAnalysisTK">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/lib/GenomeAnalysisTK-1.5-32-g2761da9" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$USER_HOME$/Desktop/gatk/public/java/src" />
+      <root url="file://$USER_HOME$/Desktop/gatk/public/java/test" />
+    </SOURCES>
+    <jarDirectory url="file://$PROJECT_DIR$/lib/GenomeAnalysisTK-1.5-32-g2761da9" recursive="false" />
+  </library>
+</component>

@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="out" default="all">
+  
+  
+  <property file="build.properties"/>
+  <!-- Uncomment the following property if no tests compilation is needed -->
+  <!-- 
+  <property name="skip.tests" value="true"/>
+   -->
+  
+  <!-- Compiler options -->
+  
+  <property name="compiler.debug" value="on"/>
+  <property name="compiler.generate.no.warnings" value="off"/>
+  <property name="compiler.args" value=""/>
+  <property name="compiler.max.memory" value="256m"/>
+  <patternset id="ignored.files">
+    <exclude name="**/CVS/**"/>
+    <exclude name="**/SCCS/**"/>
+    <exclude name="**/RCS/**"/>
+    <exclude name="**/rcs/**"/>
+    <exclude name="**/.DS_Store/**"/>
+    <exclude name="**/.svn/**"/>
+    <exclude name="**/.pyc/**"/>
+    <exclude name="**/.pyo/**"/>
+    <exclude name="**/*.pyc/**"/>
+    <exclude name="**/*.pyo/**"/>
+    <exclude name="**/.git/**"/>
+    <exclude name="**/*.hprof/**"/>
+    <exclude name="**/_svn/**"/>
+    <exclude name="**/.hg/**"/>
+    <exclude name="**/*.lib/**"/>
+    <exclude name="**/*~/**"/>
+    <exclude name="**/__pycache__/**"/>
+    <exclude name="**/.bundle/**"/>
+    <exclude name="**/*.rbc/**"/>
+  </patternset>
+  <patternset id="compiler.excluded"/>
+  <patternset id="library.patterns">
+    <include name="*.zip"/>
+    <include name="*.apk"/>
+    <include name="*.war"/>
+    <include name="*.egg"/>
+    <include name="*.ear"/>
+    <include name="*.ane"/>
+    <include name="*.swc"/>
+    <include name="*.jar"/>
+  </patternset>
+  <patternset id="compiler.resources">
+    <include name="**/?*.properties"/>
+    <include name="**/?*.xml"/>
+    <include name="**/?*.gif"/>
+    <include name="**/?*.png"/>
+    <include name="**/?*.jpeg"/>
+    <include name="**/?*.jpg"/>
+    <include name="**/?*.html"/>
+    <include name="**/?*.dtd"/>
+    <include name="**/?*.tld"/>
+    <include name="**/?*.ftl"/>
+  </patternset>
+  
+  
+  <!-- Project Libraries -->
+  
+  <path id="library.commons_math.classpath">
+    <pathelement location="${basedir}/lib/commons-math3-3.2.jar"/>
+  </path>
+  
+  <path id="library.genomeanalysistk.classpath">
+    <fileset dir="${basedir}/lib/GenomeAnalysisTK-1.5-32-g2761da9">
+      <patternset refid="library.patterns"/>
+    </fileset>
+  </path>
+  
+  <path id="library.jsc.classpath">
+    <pathelement location="${basedir}/lib/jsc.jar"/>
+  </path>
+  
+  <!-- Modules -->
+  
+  
+  <!-- Module Seurat -->
+  
+  <dirname property="module.seurat.basedir" file="${ant.file}"/>
+  
+  
+  
+  <property name="compiler.args.seurat" value="${compiler.args}"/>
+  
+  <property name="seurat.output.dir" value="${module.seurat.basedir}/out/production/Seurat"/>
+  <property name="seurat.testoutput.dir" value="${module.seurat.basedir}/out/test/Seurat"/>
+  
+  <path id="seurat.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="seurat.module.production.classpath">
+    <path refid="library.jsc.classpath"/>
+    <path refid="library.commons_math.classpath"/>
+    <path refid="library.genomeanalysistk.classpath"/>
+  </path>
+  
+  <path id="seurat.runtime.production.module.classpath">
+    <pathelement location="${seurat.output.dir}"/>
+    <path refid="library.jsc.classpath"/>
+    <path refid="library.commons_math.classpath"/>
+    <path refid="library.genomeanalysistk.classpath"/>
+  </path>
+  
+  <path id="seurat.module.classpath">
+    <pathelement location="${seurat.output.dir}"/>
+    <path refid="library.jsc.classpath"/>
+    <path refid="library.commons_math.classpath"/>
+    <path refid="library.genomeanalysistk.classpath"/>
+  </path>
+  
+  <path id="seurat.runtime.module.classpath">
+    <pathelement location="${seurat.testoutput.dir}"/>
+    <pathelement location="${seurat.output.dir}"/>
+    <path refid="library.jsc.classpath"/>
+    <path refid="library.commons_math.classpath"/>
+    <path refid="library.genomeanalysistk.classpath"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.seurat">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.seurat">
+    <patternset refid="compiler.excluded"/>
+    <patternset refid="excluded.from.module.seurat"/>
+  </patternset>
+  
+  <path id="seurat.module.sourcepath">
+    <dirset dir="${module.seurat.basedir}/Seurat">
+      <include name="src"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.seurat" depends="compile.module.seurat.production,compile.module.seurat.tests" description="Compile module Seurat"/>
+  
+  <target name="compile.module.seurat.production" description="Compile module Seurat; production classes">
+    <mkdir dir="${seurat.output.dir}"/>
+    <javac destdir="${seurat.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
+      <compilerarg line="${compiler.args.seurat}"/>
+      <bootclasspath refid="seurat.module.bootclasspath"/>
+      <classpath refid="seurat.module.production.classpath"/>
+      <src refid="seurat.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.seurat"/>
+    </javac>
+    
+    <copy todir="${seurat.output.dir}/org/broadinstitute/sting/gatk/walkers/tgen">
+      <fileset dir="${module.seurat.basedir}/Seurat/src">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+        <patternset refid="excluded.from.compilation.seurat"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.seurat.tests" depends="compile.module.seurat.production" description="compile module Seurat; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.seurat" description="cleanup module">
+    <delete dir="${seurat.output.dir}"/>
+    <delete dir="${seurat.testoutput.dir}"/>
+  </target>
+  
+  <target name="init" description="Build initialization">
+    <!-- Perform any build initialization in this target -->
+  </target>
+  
+  <target name="clean" depends="clean.module.seurat" description="cleanup all"/>
+  
+  <target name="build.modules" depends="init, clean, compile.module.seurat" description="build all modules"/>
+  
+  <target name="init.artifacts">
+    <property name="artifacts.temp.dir" value="${basedir}/__artifacts_temp"/>
+    <property name="artifact.output.seurat:jar" value="${basedir}/out/artifacts/Seurat_jar"/>
+    <property name="artifact.output.seurat:testing_jar" value="${basedir}/../../../../../../Volumes/ngd-data/Craig_lab/alexischr/new_home/tests/seurat_snv/bin"/>
+    <mkdir dir="${artifacts.temp.dir}"/>
+    <property name="temp.jar.path.Seurat.jar" value="${artifacts.temp.dir}/Seurat.jar"/>
+    <property name="temp.jar.path.Seurat.jar2" value="${artifacts.temp.dir}/1/Seurat.jar"/>
+    <mkdir dir="${artifacts.temp.dir}/1"/>
+  </target>
+  
+  <target name="artifact.seurat:jar" depends="init.artifacts, compile.module.seurat" description="Build &#39;Seurat:jar&#39; artifact">
+    <property name="artifact.temp.output.seurat:jar" value="${artifacts.temp.dir}/Seurat_jar"/>
+    <mkdir dir="${artifact.temp.output.seurat:jar}"/>
+    <jar destfile="${temp.jar.path.Seurat.jar}" duplicate="preserve" filesetmanifest="mergewithoutmain">
+      <zipfileset file="${basedir}/Seurat/src/META-INF/MANIFEST.MF" prefix="META-INF"/>
+      <zipfileset dir="${seurat.output.dir}"/>
+      <zipfileset src="${basedir}/lib/jsc.jar"/>
+      <zipfileset src="${basedir}/lib/GenomeAnalysisTK-1.5-32-g2761da9/GenomeAnalysisTK.jar"/>
+    </jar>
+    <copy file="${temp.jar.path.Seurat.jar}" tofile="${artifact.temp.output.seurat:jar}/Seurat.jar"/>
+  </target>
+  
+  <target name="artifact.seurat:testing_jar" depends="init.artifacts, compile.module.seurat" description="Build &#39;Seurat:testing_jar&#39; artifact">
+    <property name="artifact.temp.output.seurat:testing_jar" value="${artifacts.temp.dir}/Seurat_testing_jar"/>
+    <mkdir dir="${artifact.temp.output.seurat:testing_jar}"/>
+    <jar destfile="${temp.jar.path.Seurat.jar2}" duplicate="preserve" filesetmanifest="mergewithoutmain">
+      <zipfileset file="${basedir}/Seurat/src/META-INF/MANIFEST.MF" prefix="META-INF"/>
+      <zipfileset dir="${seurat.output.dir}"/>
+      <zipfileset src="${basedir}/lib/jsc.jar"/>
+      <zipfileset src="${basedir}/lib/GenomeAnalysisTK-1.5-32-g2761da9/GenomeAnalysisTK.jar"/>
+      <zipfileset src="${basedir}/lib/commons-math3-3.2.jar"/>
+    </jar>
+    <copy file="${temp.jar.path.Seurat.jar2}" tofile="${artifact.temp.output.seurat:testing_jar}/Seurat.jar"/>
+  </target>
+  
+  <target name="build.all.artifacts" depends="artifact.seurat:jar" description="Build all artifacts">
+    <mkdir dir="${artifact.output.seurat:jar}"/>
+    <copy todir="${artifact.output.seurat:jar}">
+      <fileset dir="${artifact.temp.output.seurat:jar}"/>
+    </copy>
+    
+    <!-- Delete temporary files -->
+    <delete dir="${artifacts.temp.dir}"/>
+  </target>
+  
+  <target name="all" depends="build.modules, build.all.artifacts" description="build all"/>
+</project>
