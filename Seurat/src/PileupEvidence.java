@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 by The Translational Genomics Research Institute.
+ * Copyright (c) 2013 by The Translational Genomics Research Institute.
  */
 
 package org.broadinstitute.sting.gatk.walkers.tgen;
@@ -21,20 +21,25 @@ import java.util.Map;
  */
 public class PileupEvidence {
 
-    public List<PileupElement> Pileup;
-    public List<PileupElement> ReferencePileup;
-    public Map<Byte, List<PileupElement>> NonReferencePileups;
+    public List<PileupElement> Pileup, ReferencePileup;
+    public Map<Byte, List<PileupElement>> NonReferencePileups, AllelePileups;
 
-    public Map<Byte, List<PileupElement>> AllelePileups;
 
-    //public Set<Byte> NonReferenceBases;
-    public int NonrefCount;
+    public static final Byte DELETION_CHAR = 'D';
+    public static final Byte INSERTION_CHAR = 'I';
+
+    final public Byte[] classes = {'A', 'C', 'G', 'T', DELETION_CHAR, INSERTION_CHAR};
+
+
+    public int VariantCount;
+    public int RefCount;
+
     public byte RefBase;
 
     public double GetAllelicRatio() {
         if (Pileup.size() == 0)
             return 0;
-        else return (double) NonrefCount / Pileup.size();
+        else return (double) VariantCount / Pileup.size();
     }
 
 
@@ -44,17 +49,14 @@ public class PileupEvidence {
         ReferencePileup = new ArrayList<PileupElement>();
         AllelePileups = new HashMap<Byte, List<PileupElement>>();
 
-        //add one allele pileup per nucleotide
-        AllelePileups.put((byte) 'A', new ArrayList<PileupElement>());
-        AllelePileups.put((byte) 'C', new ArrayList<PileupElement>());
-        AllelePileups.put((byte) 'G', new ArrayList<PileupElement>());
-        AllelePileups.put((byte) 'T', new ArrayList<PileupElement>());
+        //add one allele pileup per class
 
-        //extended pileup 'nucleotides'
-        AllelePileups.put((byte) 'D', new ArrayList<PileupElement>());
-        AllelePileups.put((byte) 'I', new ArrayList<PileupElement>());
+        for (Byte class_char : classes) {
+            AllelePileups.put(class_char, new ArrayList<PileupElement>());
+        }
 
-        NonrefCount = 0;
+        VariantCount = 0;
+        RefCount = 0;
     }
 
     public void Reset(byte ref_base) {
@@ -66,22 +68,23 @@ public class PileupEvidence {
         }
 
         NonReferencePileups.clear();
-        NonrefCount = 0;
+        VariantCount = 0;
+        RefCount = 0;
         RefBase = ref_base;
     }
 
     @Override
     public String toString() {
-        StringBuffer s = new StringBuffer();
+        StringBuilder s = new StringBuilder();
         for (PileupElement p : Pileup) {
             byte base = p.getBase();
 
             if (p.isDeletion())
-                base = (byte) 'D';
+                base = DELETION_CHAR;
 
             if (p instanceof ExtendedEventPileupElement) {
                 if (((ExtendedEventPileupElement) p).isInsertion())
-                    base = (byte) 'I';
+                    base = INSERTION_CHAR;
             }
 
             if (p.getRead().getReadNegativeStrandFlag())
@@ -97,14 +100,14 @@ public class PileupEvidence {
         Byte base = p.getBase();
 
         if (p.isDeletion())
-            base = (byte) 'D';
+            base = DELETION_CHAR;
 
         if (p.isDeletion() && p instanceof ExtendedEventPileupElement)
             return;
 
         if (p instanceof ExtendedEventPileupElement) {
             if (((ExtendedEventPileupElement) p).isInsertion()) {
-                base = (byte) 'I';
+                base = INSERTION_CHAR;
             } else { //we don't know how to handle any other events at the moment!!
 
             }
@@ -112,10 +115,12 @@ public class PileupEvidence {
 
         Pileup.add(p);
 
-
-        if (base == RefBase)
+        if (base == RefBase) {
+            RefCount++;
             ReferencePileup.add(p);
-        else {
+        } else {
+            VariantCount++;
+
             List<PileupElement> nrl = NonReferencePileups.get(base);
             if (nrl == null)
                 nrl = AllelePileups.get(base);
@@ -124,10 +129,7 @@ public class PileupEvidence {
                 return;          //not one of the 'real' alleles (e.g a code , N or M), disregard
 
             nrl.add(p);
-
             NonReferencePileups.put(base, nrl);
-
-            NonrefCount++;
         }
     }
 

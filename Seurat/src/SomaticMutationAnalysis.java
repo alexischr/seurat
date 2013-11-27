@@ -5,7 +5,6 @@
 package org.broadinstitute.sting.gatk.walkers.tgen;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.apache.commons.math3.stat.inference.WilcoxonSignedRankTest;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -45,9 +44,6 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
     double prior_snv = 0.0001;
     double prior_sindel = 0.000001;
 
-    //
-    WilcoxonSignedRankTest cycle_wilcoxon = new WilcoxonSignedRankTest();
-
     public boolean initialize(Map<String, PileupEvidence> Evidence, SeuratArgumentCollection argumentCollection, GeneContext context) {
         arguments = argumentCollection;
         normal_evidence = Evidence.get("dna_normal");
@@ -57,11 +53,7 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
 
         min_event_p = 1.0 - Math.pow(10.0, -argumentCollection.quality / 10.0);
 
-        if (normal_evidence != null && tumor_evidence != null)
-            return true;
-        else {
-            return false;
-        }
+        return (normal_evidence != null && tumor_evidence != null);
     }
 
     @Override
@@ -145,12 +137,12 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
             List<PileupElement> normal_nonref_pileup = normal_evidence.NonReferencePileups.get(c_alt);
 
             int K1 = normal_nonref_pileup == null ? 0 : normal_nonref_pileup.size();
-            int N1 = normal_evidence.ReferencePileup.size() + K1;
+            int N1 = normal_evidence.RefCount + K1;
 
             int K2 = nonref_pileup.getValue().size();
-            int N2 = tumor_evidence.ReferencePileup.size() + K2;
+            int N2 = tumor_evidence.RefCount + K2;
 
-            if (c_alt.equals((byte) 'I')) {
+            if (c_alt.equals(PileupEvidence.INSERTION_CHAR)) {
                 HashMap<String, Integer> hs = new HashMap<String, Integer>();
 
                 for (PileupElement p : nonref_pileup.getValue()) {
@@ -173,7 +165,7 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
                 }
 
             }
-            if (c_alt.equals((byte) 'D')) {
+            if (c_alt.equals(PileupEvidence.DELETION_CHAR)) {
                 consensus_seq = String.format("%c", ref.getBases()[99]);
 
             }
@@ -182,25 +174,25 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
                 if (rna_normal_evidence != null) {
                     List<PileupElement> rna_normal_nonref_pileup = rna_normal_evidence.NonReferencePileups.get(c_alt);
                     int rK1 = rna_normal_nonref_pileup == null ? 0 : rna_normal_nonref_pileup.size();
-                    int rN1 = rna_normal_evidence.Pileup.size() - rK1;
+                    int rN1 = rna_normal_evidence.RefCount + rK1;
                     K1 += rK1;
                     N1 += rN1;
                 }
                 if (rna_tumor_evidence != null) {
                     List<PileupElement> rna_tumor_nonref_pileup = rna_tumor_evidence.NonReferencePileups.get(c_alt);
                     int rK2 = rna_tumor_nonref_pileup == null ? 0 : rna_tumor_nonref_pileup.size();
-                    int rN2 = rna_tumor_evidence.Pileup.size() - rK2;
+                    int rN2 = rna_tumor_evidence.RefCount + rK2;
                     K2 += rK2;
                     N2 += rN2;
                 }
             }
 
-            if (arguments.enable_debug) {
-                System.err.printf("%d/%d -- %d/%d --- %f", K1, N1, K2, N2);
-            }
-
             //if (N1 >= 5 && N2 >= 5) {
             double p_snv = GetSomaticProbability(K1, N1, K2, N2, arguments.beta_alpha, arguments.beta_beta, arguments.refnormal_only);
+
+            if (arguments.enable_debug) {
+                System.err.printf("N %d/%d -- T %d/%d --- p_snv %f\n", K1, N1, K2, N2, p_snv);
+            }
 
             if (p_snv > max_p_snv) {
                 // looks good, but check the strand evidence if we have this enabled.
@@ -235,15 +227,15 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
 
         if (max_p_snv > min_event_p) {   //event is over qual threshold
 
-            String event_name = null;
+            String event_name;
             String alt;
 
-            if (alt_snv.equals(((byte) 'D'))) {
+            if (alt_snv.equals((PileupEvidence.DELETION_CHAR))) {
                 event_name = "somatic_deletion";
                 alt = alt_seq;
                 loc = ref.getGenomeLocParser().createGenomeLoc(loc.getContig(), loc.getStart() - 1, loc.getStop() - 1);
                 ref_seq = String.format("%c%c", ref.getBases()[99], ref.getBases()[100]);
-            } else if (alt_snv.equals((byte) 'I')) {
+            } else if (alt_snv.equals(PileupEvidence.INSERTION_CHAR)) {
                 event_name = "somatic_insertion";
                 alt = String.format("%c%s", normal_evidence.RefBase, alt_seq);
             } else {
@@ -263,7 +255,7 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
             new_snv.setAttribute("ALT", alt);
 
             //TODO: proper representation of insertions in ALT field
-            if (alt_snv.equals((byte) 'I')) {
+            if (alt_snv.equals(PileupEvidence.INSERTION_CHAR)) {
                 new_snv.setAttribute("LN", alt_seq.length());
                 new_snv.setAttribute("SEQ", alt_seq);
             }
@@ -302,7 +294,6 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
         public double VBQ;
         public double VMQ;
         public double VC;
-        public double[] relative_cycles;
 
         public EvidenceMetrics(PileupEvidence evidence) {
             this.evidence = evidence;
