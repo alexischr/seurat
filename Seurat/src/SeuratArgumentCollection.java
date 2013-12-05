@@ -7,11 +7,7 @@ package org.broadinstitute.sting.gatk.walkers.tgen;
 import org.broadinstitute.sting.commandline.Argument;
 
 /**
- * Created by IntelliJ IDEA.
- * User: Alexis
- * Date: 12/27/11
- * Time: 11:38 AM
- * To change this template use File | Settings | File Templates.
+ * Package: ${PACKAGE_NAME}
  */
 public class SeuratArgumentCollection {
     @Argument(fullName = "prior_alpha", shortName = "alpha", doc = "alpha parameter for the homozygosity beta distribution (default = 1)", required = false)

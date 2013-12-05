@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 by The Translational Genomics Research Institute.
+ * Copyright (c) 2013 by The Translational Genomics Research Institute.
  */
 
 package org.broadinstitute.sting.gatk.walkers.tgen;
@@ -21,10 +21,10 @@ import java.util.List;
 
 
 /**
- * Paired Sample Mutation Caller
+ * Walker for creating interval lists with a set minimum coverage (for use with the -L GATK parameter)
  */
 
-@WalkerName("CoveredIntervals")
+@WalkerName("Generate ")
 @Requires({DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES})
 // This walker requires -I input.bam, it also requires -R reference.fasta
 public class GenerateWellCoveredInterval extends LocusWalker<Integer, Long> {
@@ -41,7 +41,7 @@ public class GenerateWellCoveredInterval extends LocusWalker<Integer, Long> {
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
     public int MIN_BASE_QUALITY_SCORE = 10;
 
-    @Argument(fullName = "min_mapping_qualit	y_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
+    @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
     public int MIN_MAPPING_QUALITY_SCORE = 10;
 
     @Argument(fullName = "min_coverage", shortName = "cov", doc = "Minimum coverage", required = false)

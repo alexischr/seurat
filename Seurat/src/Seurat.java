@@ -41,10 +41,11 @@ import java.util.Map;
 @Reference(window = @Window(start = -100, stop = 100))
 public class Seurat extends LocusWalker<Integer, Long> {
 
+    public static final String REF = "REF";
     @Output
     private PrintStream out;
 
-    @Argument(fullName = "go", shortName = "go", doc = "Large event output file")
+    @Argument(fullName = "go", shortName = "go", doc = "Large event output file", required = false)
     private String gene_out;
 
     @ArgumentCollection
@@ -90,11 +91,6 @@ public class Seurat extends LocusWalker<Integer, Long> {
         multibam_helper.setMinPerSampleCoverage(MIN_COVERAGE);
         multibam_helper.setMaxMismatches(arguments.maximum_mismatches);
 
-        try {
-            gene_out_file = new PrintStream(gene_out);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
 
         //annotations
         if (RefseqFileName != null) {
@@ -103,19 +99,29 @@ public class Seurat extends LocusWalker<Integer, Long> {
             RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
                     getToolkit().getGenomeLocParser(),
                     getToolkit().getArguments().unsafe);
-            RMDTrack refseq = builder.createInstanceOfTrack(RefSeqCodec.class, new File(RefseqFileName));
+            RMDTrack refseq_track = builder.createInstanceOfTrack(RefSeqCodec.class, new File(RefseqFileName));
 
-            refseqIterator = new SeekableRODIterator(refseq.getHeader(),
-                    refseq.getSequenceDictionary(), getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+            refseqIterator = new SeekableRODIterator(refseq_track.getHeader(),
+                    refseq_track.getSequenceDictionary(), getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
                     getToolkit().getGenomeLocParser(),
-                    refseq.getIterator());
+                    refseq_track.getIterator());
 
             if (refseqIterator == null) {
                 logger.info("No gene annotations available");
                 if (arguments.coding_only)
-                    throw new UserException.BadInput("A gene annotation file must be provided for the \"coding_only\" option to be allowed.");
+                    throw new UserException.BadInput("A gene annotation file must be provided ('-refseq [file]') for the \"coding_only\" option to be allowed.");
 
+                if (gene_out != null)
+                    throw new UserException.BadInput("A gene annotation file must be provided ('-refseq [file]') for the \"coding_only\" option to be allowed.");
+            } else {
+                if (gene_out != null)
+                    try {
+                        gene_out_file = new PrintStream(gene_out);
+                    } catch (FileNotFoundException e) {
+                        throw new UserException.BadArgumentValue("go", e.getMessage());
+                    }
             }
+
         }
 
         //non-transcriptional (global) walkers
@@ -261,28 +267,29 @@ public class Seurat extends LocusWalker<Integer, Long> {
         if (events == null)
             return;
 
-        for (Event e : events) {
+        for (Event event : events) {
 
-            double phred = -10 * Math.log10(1 - e.getProbability());
+            double phred_score = -10 * Math.log10(1 - event.getProbability());
 
-            if (phred > QUALITY_CAP)
-                phred = QUALITY_CAP;
+            if (phred_score > QUALITY_CAP)
+                phred_score = QUALITY_CAP;
 
-            if (phred < arguments.quality && !(OUTPUT_ALL))
+            if (phred_score < arguments.quality && !(OUTPUT_ALL))
                 continue;
 
-            if (e.getLocation() == null) {
-                String gene_name = (e.getGeneContext().gene_name == null ? "" : e.getGeneContext().gene_name);
-                gene_out_file.println(context_name + '\t' + gene_name + '\t' + e.toString());
+            if (event.getLocation() == null) {
+                //event doesn't have a precise location
+                String gene_name = (event.getGeneContext().gene_name == null ? "" : event.getGeneContext().gene_name);
+                gene_out_file.println(context_name + '\t' + gene_name + '\t' + event.toString());
             } else {
                 String str_gene = "";
                 if (!context_name.equals("unknown"))
                     str_gene = "CX=" + context_name + ';';
 
                 out.printf("%s\t%d\t.\t%s\t%s\t%.1f\tPASS\tTYPE=%s;%s%s\n",
-                        e.getLocation().getContig(), e.getLocation().getStart(),
-                        e.getAttribute("REF"), e.getAttribute("ALT"), phred,
-                        e.getName(), str_gene, e.attributeStringVCF());
+                        event.getLocation().getContig(), event.getLocation().getStart(),
+                        event.getAttribute(REF), event.getAttribute("ALT"), phred_score,
+                        event.getName(), str_gene, event.attributeStringVCF());
 
             }
 
@@ -343,8 +350,7 @@ public class Seurat extends LocusWalker<Integer, Long> {
                 WriteEvents(walker.reduce(), walkerList.getKey());
         }
 
-
-        //hack to prevent wrong exit codes later on, even though we're done
+        //hack to prevent wrong exit codes later on (from GATK exiting failures), even though we're done
         System.exit(0);
     }
 

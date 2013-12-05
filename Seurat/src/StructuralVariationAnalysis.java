@@ -346,9 +346,6 @@ public class StructuralVariationAnalysis extends RegionalAnalysisWalker {
         double alpha_ref = alpha;
         double beta_ref = beta;
 
-        double alpha_nonref = beta;
-        double beta_nonref = alpha;
-
         double prior_nosv = 1 - prior_sv;
         double p_d_nosv = prior_nosv * SeuratMethods.BetaBinomialPdf(N2, K2, K1 + alpha_ref, N1 - K1 + beta_ref);
         double p_d_sv = prior_sv * SeuratMethods.BetaBinomialPdf(N2, K2, 1, 1);

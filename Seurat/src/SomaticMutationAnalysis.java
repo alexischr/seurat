@@ -191,7 +191,7 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
             double p_snv = GetSomaticProbability(K1, N1, K2, N2, arguments.beta_alpha, arguments.beta_beta, arguments.refnormal_only);
 
             if (arguments.enable_debug) {
-                System.err.printf("N %d/%d -- T %d/%d --- p_snv %f\n", K1, N1, K2, N2, p_snv);
+                System.err.printf("N=%d/%d -- T=%d/%d --- p_snv %f\n", K1, N1, K2, N2, p_snv);
             }
 
             if (p_snv > max_p_snv) {
