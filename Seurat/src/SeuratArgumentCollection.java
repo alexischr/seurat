@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 by The Translational Genomics Research Institute.
+ * Copyright (c) 2014 by The Translational Genomics Research Institute.
  */
 
 package org.broadinstitute.sting.gatk.walkers.tgen;
@@ -13,7 +13,7 @@ public class SeuratArgumentCollection {
     @Argument(fullName = "prior_alpha", shortName = "alpha", doc = "alpha parameter for the homozygosity beta distribution (default = 1)", required = false)
     public int beta_alpha = 1;
 
-    @Argument(fullName = "prior_beta", shortName = "beta", doc = "beta parameter for the homozygosity beta distribution (default = 701)", required = false)
+    @Argument(fullName = "prior_beta", shortName = "beta", doc = "beta parameter for the homozygosity beta distribution (default = 700)", required = false)
     public int beta_beta = 700;
 
     @Argument(fullName = "refnormal_only", shortName = "ref", required = false, doc = "Whether or not only reference-matching homozygous positions are allowed on the normal, for SNV discovery. Reduces false positives due to faulty alignments (default = true)")
@@ -25,8 +25,11 @@ public class SeuratArgumentCollection {
     @Argument(fullName = "coding_only", shortName = "coding", required = false, doc = "Process only coding regions.")
     public boolean coding_only = false;
 
-    @Argument(fullName = "rna_snv", shortName = "rna_snv", required = false, doc = "Merge RNA evidence to DNA evidence when performing somatic mutation analysis")
-    public boolean rna_snv = false;
+    @Argument(fullName = "merge_rna", shortName = "merge_rna", required = false, doc = "Merge RNA evidence to DNA evidence when performing somatic mutation analysis")
+    public boolean merge_rna = false;
+
+    @Argument(fullName = "rna_call", shortName = "rna_call", required = false, doc = "For DNA calls, also make call on RNA evidence (added to the INFO field)")
+    public boolean rna_call = false;
 
     @Argument(fullName = "pileup_info", shortName = "pileup", required = false, doc = "Output pileup on each event record.")
     public boolean pileup_info = true;
@@ -52,6 +55,11 @@ public class SeuratArgumentCollection {
     @Argument(fullName = "debug", required = false, doc = "Enable debugging mode/debugging information. Do not use if you're not familiar with the effects.")
     public boolean enable_debug = false;
 
+    @Argument(fullName = "p_mutation", shortName = "p_m", required = false, doc = "Prior probability for somatic mutation (default = 0.0001)")
+    public double p_mutation = 0.0001;
+
+    @Argument(fullName = "allele_metrics", required = false, doc = "Provide additional DNA/RNA pileup metrics.")
+    public boolean enable_allele_metrics = false;
 
     @Override
     public String toString() {

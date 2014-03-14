@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 by The Translational Genomics Research Institute.
+ * Copyright (c) 2014 by The Translational Genomics Research Institute.
  */
 
 package org.broadinstitute.sting.gatk.walkers.tgen;
@@ -111,8 +111,11 @@ public class Seurat extends LocusWalker<Integer, Long> {
                 if (arguments.coding_only)
                     throw new UserException.BadInput("A gene annotation file must be provided ('-refseq [file]') for the \"coding_only\" option to be allowed.");
 
-                if (gene_out != null)
-                    throw new UserException.BadInput("A gene annotation file must be provided ('-refseq [file]') for the \"coding_only\" option to be allowed.");
+                if (gene_out != null) {
+                    logger.warn("A gene annotation file must be provided ('-refseq [file]') for some larger event analyses.");
+                }
+
+
             } else {
                 if (gene_out != null)
                     try {
@@ -148,7 +151,12 @@ public class Seurat extends LocusWalker<Integer, Long> {
         writeVCFHeaders();
 
 
-        gene_out_file.println("#context\tgene\tevent\tquality\tinfo");
+        writeLongEventHeaders();
+    }
+
+    private void writeLongEventHeaders() {
+        if (gene_out_file != null)
+            gene_out_file.println("#context\tgene\tevent\tquality\tinfo");
     }
 
     //output file headers
@@ -170,12 +178,28 @@ public class Seurat extends LocusWalker<Integer, Long> {
         out.println("##INFO=<ID=DP2,Number=1,Type=Integer,Description=\"The depth of coverage in tumor\">");
         out.println("##INFO=<ID=SEQ,Number=1,Type=String,Description=\"The bases inserted\">");
         out.println("##INFO=<ID=LN,Number=1,Type=Integer,Description=\"The length of a change\">");
+
         out.println(VCFInfo("MVC1", "1", "String", "The median for the variant evidence distance from the end of the read (normal)"));
         out.println(VCFInfo("MVBQ1", "1", "String", "The median for the base quality of variant evidence in the normal sample"));
         out.println(VCFInfo("MVMQ1", "1", "String", "The median for the mapping quality of variant evidence in the normal sample"));
         out.println(VCFInfo("MVC2", "1", "String", "The median for the variant evidence distance from the end of the read (tumor)"));
         out.println(VCFInfo("MVBQ2", "1", "String", "The median for the base quality of variant evidence in the tumor sample"));
         out.println(VCFInfo("MVMQ2", "1", "String", "The median for the mapping quality of variant evidence in the tumor sample"));
+
+        //allele metrics
+
+        if (arguments.enable_allele_metrics) {
+            out.println(VCFInfo("DNA_ALT_ALLELE_FORWARD", "4", "Integer", "# high-quality alt-forward bases"));
+            out.println(VCFInfo("DNA_ALT_ALLELE_FORWARD_FRACTION", "4", "Float", "# high-quality alt_forward_ratio"));
+            out.println(VCFInfo("DNA_ALT_ALLELE_REVERSE", "4", "Integer", "# high-quality alt-reverse bases"));
+            out.println(VCFInfo("DNA_ALT_ALLELE_REVERSE_FRACTION", "4", "Float", "# high-quality alt_reverse_ratio"));
+            out.println(VCFInfo("DNA_ALT_ALLELE_TOTAL", "4", "Integer", "# high-quality alt-forward+reverse bases"));
+            out.println(VCFInfo("DNA_ALT_ALLELE_TOTAL_FRACTION", "4", "Float", "# high-quality alt-total ratio"));
+        }
+
+        if (arguments.rna_call) {
+            out.println(VCFInfo("RNA_CALL", "1", "Float", "Phred score for somatic change in RNA-tumor (versus RNA-normal if available, DNA-normal if not)"));
+        }
 
         out.println("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO");
     }

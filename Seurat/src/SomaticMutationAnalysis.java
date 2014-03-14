@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 by The Translational Genomics Research Institute.
+ * Copyright (c) 2014 by The Translational Genomics Research Institute.
  */
 
 package org.broadinstitute.sting.gatk.walkers.tgen;
@@ -41,7 +41,7 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
     double prior_homvar = 0.0005;
     double prior_het = 0.001;
 
-    double prior_snv = 0.0001;
+    double prior_snv = 0.01;
     double prior_sindel = 0.000001;
 
     public boolean initialize(Map<String, PileupEvidence> Evidence, SeuratArgumentCollection argumentCollection, GeneContext context) {
@@ -52,6 +52,7 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
         rna_tumor_evidence = Evidence.get("rna_tumor");
 
         min_event_p = 1.0 - Math.pow(10.0, -argumentCollection.quality / 10.0);
+        prior_snv = arguments.p_mutation;
 
         return (normal_evidence != null && tumor_evidence != null);
     }
@@ -119,30 +120,62 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
         }
     }
 
+    private class SomaticCall {
+        public double p_snv = 0;
+        public Byte alt_snv;
+        public String ref_seq = "";
+        public String alt_seq;
+        public int K1 = 0, N1 = 0, K2 = 0, N2 = 0;
+        public int rK1 = 0, rN1 = 0, rK2 = 0, rN2 = 0;
+
+        public int dna_alt_allele_forward = 0, dna_alt_allele_reverse = 0, dna_alt_allele_total = 0;
+        public double dna_alt_allele_forward_fraction = 0, dna_alt_allele_reverse_fraction = 0, dna_alt_allele_total_fraction = 0;
+
+        public SomaticCall(Byte alt_snv, String alt_seq) {
+            this.alt_snv = alt_snv;
+            this.alt_seq = alt_seq;
+        }
+
+        public SomaticCall(String alt_seq) {
+            this.alt_snv = 'N';
+            this.alt_seq = alt_seq;
+        }
+    }
+
     @Override
     public void map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, List<GeneContext> ann_contexts) {
         GenomeLoc loc = context.getLocation();
-        Byte alt_snv = 'N';
-        String ref_seq = String.format("%c", ref.getBase());
-        String alt_seq = "";
-        float ar1 = 0;
-        float ar2 = 0;
-        double max_p_snv = 0;
+
+        SomaticCall best_call = new SomaticCall("");
+        best_call.ref_seq = String.format("%c", ref.getBase());
 
 
         for (Map.Entry<Byte, List<PileupElement>> nonref_pileup : tumor_evidence.NonReferencePileups.entrySet()) {
-            Byte c_alt = nonref_pileup.getKey();
-            String consensus_seq = "";
+            SomaticCall current_call = new SomaticCall(nonref_pileup.getKey(), "");
 
-            List<PileupElement> normal_nonref_pileup = normal_evidence.NonReferencePileups.get(c_alt);
+            List<PileupElement> normal_nonref_pileup = normal_evidence.NonReferencePileups.get(current_call.alt_snv);
 
-            int K1 = normal_nonref_pileup == null ? 0 : normal_nonref_pileup.size();
-            int N1 = normal_evidence.RefCount + K1;
+            current_call.K1 = normal_nonref_pileup == null ? 0 : normal_nonref_pileup.size();
+            current_call.N1 = normal_evidence.RefCount + current_call.K1;
 
-            int K2 = nonref_pileup.getValue().size();
-            int N2 = tumor_evidence.RefCount + K2;
+            current_call.K2 = nonref_pileup.getValue().size();
+            current_call.N2 = tumor_evidence.RefCount + current_call.K2;
 
-            if (c_alt.equals(PileupEvidence.INSERTION_CHAR)) {
+            if (rna_normal_evidence != null) {
+                List<PileupElement> rna_normal_nonref_pileup = rna_normal_evidence.NonReferencePileups.get(current_call.alt_snv);
+                current_call.rK1 = rna_normal_nonref_pileup == null ? 0 : rna_normal_nonref_pileup.size();
+                current_call.rN1 = rna_normal_evidence.RefCount + current_call.rK1;
+
+            }
+            if (rna_tumor_evidence != null) {
+                List<PileupElement> rna_tumor_nonref_pileup = rna_tumor_evidence.NonReferencePileups.get(current_call.alt_snv);
+                current_call.rK2 = rna_tumor_nonref_pileup == null ? 0 : rna_tumor_nonref_pileup.size();
+                current_call.rN2 = rna_tumor_evidence.RefCount + current_call.rK2;
+
+            }
+
+
+            if (current_call.alt_snv.equals(PileupEvidence.INSERTION_CHAR)) {
                 HashMap<String, Integer> hs = new HashMap<String, Integer>();
 
                 for (PileupElement p : nonref_pileup.getValue()) {
@@ -160,42 +193,41 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
                 for (Map.Entry<String, Integer> i : hs.entrySet()) {
                     if (i.getValue() > cons_n) {
                         cons_n = i.getValue();
-                        consensus_seq = i.getKey();
+                        current_call.alt_seq = i.getKey();
                     }
                 }
 
             }
-            if (c_alt.equals(PileupEvidence.DELETION_CHAR)) {
-                consensus_seq = String.format("%c", ref.getBases()[99]);
+            if (current_call.alt_snv.equals(PileupEvidence.DELETION_CHAR)) {
+                current_call.alt_seq = String.format("%c", ref.getBases()[99]);
 
             }
 
-            if (arguments.rna_snv) {
-                if (rna_normal_evidence != null) {
-                    List<PileupElement> rna_normal_nonref_pileup = rna_normal_evidence.NonReferencePileups.get(c_alt);
-                    int rK1 = rna_normal_nonref_pileup == null ? 0 : rna_normal_nonref_pileup.size();
-                    int rN1 = rna_normal_evidence.RefCount + rK1;
-                    K1 += rK1;
-                    N1 += rN1;
-                }
-                if (rna_tumor_evidence != null) {
-                    List<PileupElement> rna_tumor_nonref_pileup = rna_tumor_evidence.NonReferencePileups.get(c_alt);
-                    int rK2 = rna_tumor_nonref_pileup == null ? 0 : rna_tumor_nonref_pileup.size();
-                    int rN2 = rna_tumor_evidence.RefCount + rK2;
-                    K2 += rK2;
-                    N2 += rN2;
-                }
+            if (arguments.merge_rna) {
+                current_call.K1 += current_call.rK1;
+                current_call.N1 += current_call.rN1;
+                current_call.K2 += current_call.rK2;
+                current_call.N2 += current_call.rN2;
             }
 
-            //if (N1 >= 5 && N2 >= 5) {
-            double p_snv = GetSomaticProbability(K1, N1, K2, N2, arguments.beta_alpha, arguments.beta_beta, arguments.refnormal_only);
+
+            /// call! ///
+            current_call.p_snv = GetSomaticProbability(current_call.K1, current_call.N1, current_call.K2, current_call.N2, arguments.beta_alpha, arguments.beta_beta, arguments.refnormal_only);
+            ///
+
 
             if (arguments.enable_debug) {
-                System.err.printf("N=%d/%d -- T=%d/%d --- p_snv %f\n", K1, N1, K2, N2, p_snv);
+                System.err.printf("N=%d/%d -- T=%d/%d --- p_snv %f\n", current_call.K1, current_call.N1, current_call.K2, current_call.N2, current_call.p_snv);
             }
 
-            if (p_snv > max_p_snv) {
-                // looks good, but check the strand evidence if we have this enabled.
+            boolean call_approved = true;
+
+            do {
+                if (current_call.p_snv < best_call.p_snv) {
+                    call_approved = false;
+                    break;
+                }
+
                 if (arguments.both_strands) {
                     boolean pos_strand = false;
                     boolean neg_strand = false;
@@ -205,59 +237,72 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
                         else
                             pos_strand = true;
                         if (neg_strand && pos_strand) {
-                            max_p_snv = p_snv;
-                            alt_snv = c_alt;
-                            ar1 = ((float) K1) / N1;
-                            ar2 = ((float) K2) / N2;
-                            alt_seq = consensus_seq;
                             break;
                         }
                     }
-                } else {
-                    max_p_snv = p_snv;
-                    alt_snv = c_alt;
-                    ar1 = ((float) K1) / N1;
-                    ar2 = ((float) K2) / N2;
-                    alt_seq = consensus_seq;
+                    if (!(neg_strand && pos_strand)) {
+                        call_approved = false;
+                        break;
+                    }
                 }
 
-            }
-            //}
+                if (call_approved) {
+                    best_call = current_call;
+
+                    //ar1 = ((float) K1) / N1;
+                    //ar2 = ((float) K2) / N2;
+
+                    if (arguments.enable_allele_metrics) {
+                        for (PileupElement p : nonref_pileup.getValue()) {
+                            if (p.getRead().getReadNegativeStrandFlag())
+                                best_call.dna_alt_allele_forward++;
+                            else
+                                best_call.dna_alt_allele_reverse++;
+                        }
+                        best_call.dna_alt_allele_total = nonref_pileup.getValue().size();
+
+                        best_call.dna_alt_allele_forward_fraction = ((double) best_call.dna_alt_allele_forward) / best_call.dna_alt_allele_total;
+                        best_call.dna_alt_allele_reverse_fraction = ((double) best_call.dna_alt_allele_reverse) / best_call.dna_alt_allele_total;
+                        best_call.dna_alt_allele_total_fraction = ((double) best_call.dna_alt_allele_total) / best_call.N2;
+                    }
+                }
+            } while (false);
+
         }
 
-        if (max_p_snv > min_event_p) {   //event is over qual threshold
+        if (best_call.p_snv > min_event_p) {   //event is over qual threshold
 
             String event_name;
             String alt;
 
-            if (alt_snv.equals((PileupEvidence.DELETION_CHAR))) {
+            if (best_call.alt_snv.equals((PileupEvidence.DELETION_CHAR))) {
                 event_name = "somatic_deletion";
-                alt = alt_seq;
+                alt = best_call.alt_seq;
                 loc = ref.getGenomeLocParser().createGenomeLoc(loc.getContig(), loc.getStart() - 1, loc.getStop() - 1);
-                ref_seq = String.format("%c%c", ref.getBases()[99], ref.getBases()[100]);
-            } else if (alt_snv.equals(PileupEvidence.INSERTION_CHAR)) {
+                best_call.ref_seq = String.format("%c%c", ref.getBases()[99], ref.getBases()[100]);
+            } else if (best_call.alt_snv.equals(PileupEvidence.INSERTION_CHAR)) {
                 event_name = "somatic_insertion";
-                alt = String.format("%c%s", normal_evidence.RefBase, alt_seq);
+                alt = String.format("%c%s", normal_evidence.RefBase, best_call.alt_seq);
             } else {
                 event_name = "somatic_SNV";
-                alt = new String(new byte[]{alt_snv});
+                alt = new String(new byte[]{best_call.alt_snv});
             }
 
-            Event new_snv = new Event(event_name, max_p_snv, loc);
+            Event new_snv = new Event(event_name, best_call.p_snv, loc);
 
-            new_snv.setAttribute("REF", ref_seq);
+            new_snv.setAttribute("REF", best_call.ref_seq);
             new_snv.setAttribute("DP1", normal_evidence.Pileup.size());
             new_snv.setAttribute("DP2", tumor_evidence.Pileup.size());
-            new_snv.setAttribute("AR1", ar1);
-            new_snv.setAttribute("AR2", ar2);
+            new_snv.setAttribute("AR1", ((float) best_call.K1) / best_call.N1);
+            new_snv.setAttribute("AR2", ((float) best_call.K2) / best_call.N2);
             new_snv.setAttribute("LN", 1);
 
             new_snv.setAttribute("ALT", alt);
 
             //TODO: proper representation of insertions in ALT field
-            if (alt_snv.equals(PileupEvidence.INSERTION_CHAR)) {
-                new_snv.setAttribute("LN", alt_seq.length());
-                new_snv.setAttribute("SEQ", alt_seq);
+            if (best_call.alt_snv.equals(PileupEvidence.INSERTION_CHAR)) {
+                new_snv.setAttribute("LN", best_call.alt_seq.length());
+                new_snv.setAttribute("SEQ", best_call.alt_seq);
             }
 
 
@@ -281,6 +326,22 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
                 new_snv.setAttribute("MVC2", tumor_metrics.VC);
                 new_snv.setAttribute("MVBQ2", tumor_metrics.VBQ);
                 new_snv.setAttribute("MVMQ2", tumor_metrics.VMQ);
+            }
+
+            if (arguments.enable_allele_metrics) {
+                new_snv.setAttribute("DNA_ALT_ALLELE_FORWARD", best_call.dna_alt_allele_forward);
+            }
+
+            if (arguments.rna_call) {
+                double rna_call;
+
+                if (rna_normal_evidence != null) {
+                    rna_call = GetSomaticProbability(best_call.rK1, best_call.rN1, best_call.rK2, best_call.rN2, arguments.beta_alpha, arguments.beta_beta, arguments.refnormal_only);
+                } else {
+                    rna_call = GetSomaticProbability(best_call.K1, best_call.N1, best_call.rK2, best_call.rN2, arguments.beta_alpha, arguments.beta_beta, arguments.refnormal_only);
+                }
+
+                new_snv.setAttribute("RNA_CALL", (float) (-10 * Math.log10(1 - rna_call)));
             }
 
             temp_events.add(new_snv);
