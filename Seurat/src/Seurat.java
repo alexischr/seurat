@@ -195,6 +195,19 @@ public class Seurat extends LocusWalker<Integer, Long> {
             out.println(VCFInfo("DNA_ALT_ALLELE_REVERSE_FRACTION", "4", "Float", "# high-quality alt_reverse_ratio"));
             out.println(VCFInfo("DNA_ALT_ALLELE_TOTAL", "4", "Integer", "# high-quality alt-forward+reverse bases"));
             out.println(VCFInfo("DNA_ALT_ALLELE_TOTAL_FRACTION", "4", "Float", "# high-quality alt-total ratio"));
+            out.println(VCFInfo("DNA_REF_ALLELE_FORWARD", "4", "Integer", "# high-quality ref-forward bases"));
+            out.println(VCFInfo("DNA_REF_ALLELE_REVERSE", "4", "Integer", "# high-quality ref-reverse bases"));
+            out.println(VCFInfo("DNA_REF_ALLELE_TOTAL", "4", "Integer", "# high-quality ref-forward+reverse bases"));
+
+            out.println(VCFInfo("RNA_ALT_ALLELE_FORWARD", "4", "Integer", "# high-quality alt-forward bases"));
+            out.println(VCFInfo("RNA_ALT_ALLELE_FORWARD_FRACTION", "4", "Float", "# high-quality alt_forward_ratio"));
+            out.println(VCFInfo("RNA_ALT_ALLELE_REVERSE", "4", "Integer", "# high-quality alt-reverse bases"));
+            out.println(VCFInfo("RNA_ALT_ALLELE_REVERSE_FRACTION", "4", "Float", "# high-quality alt_reverse_ratio"));
+            out.println(VCFInfo("RNA_ALT_ALLELE_TOTAL", "4", "Integer", "# high-quality alt-forward+reverse bases"));
+            out.println(VCFInfo("RNA_ALT_ALLELE_TOTAL_FRACTION", "4", "Float", "# high-quality alt-total ratio"));
+            out.println(VCFInfo("RNA_REF_ALLELE_FORWARD", "4", "Integer", "# high-quality ref-forward bases"));
+            out.println(VCFInfo("RNA_REF_ALLELE_REVERSE", "4", "Integer", "# high-quality ref-reverse bases"));
+            out.println(VCFInfo("RNA_REF_ALLELE_TOTAL", "4", "Integer", "# high-quality ref-forward+reverse bases"));
         }
 
         if (arguments.rna_call) {

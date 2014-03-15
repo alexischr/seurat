@@ -130,6 +130,7 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
 
         public int dna_alt_allele_forward = 0, dna_alt_allele_reverse = 0, dna_alt_allele_total = 0;
         public double dna_alt_allele_forward_fraction = 0, dna_alt_allele_reverse_fraction = 0, dna_alt_allele_total_fraction = 0;
+        public int dna_ref_allele_forward = 0, dna_ref_allele_reverse = 0, dna_ref_allele_total = 0;
 
         public SomaticCall(Byte alt_snv, String alt_seq) {
             this.alt_snv = alt_snv;
@@ -150,26 +151,26 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
         best_call.ref_seq = String.format("%c", ref.getBase());
 
 
-        for (Map.Entry<Byte, List<PileupElement>> nonref_pileup : tumor_evidence.NonReferencePileups.entrySet()) {
-            SomaticCall current_call = new SomaticCall(nonref_pileup.getKey(), "");
+        for (Map.Entry<Byte, List<PileupElement>> tumor_var_pileup : tumor_evidence.NonReferencePileups.entrySet()) {
+            SomaticCall current_call = new SomaticCall(tumor_var_pileup.getKey(), "");
 
-            List<PileupElement> normal_nonref_pileup = normal_evidence.NonReferencePileups.get(current_call.alt_snv);
+            List<PileupElement> normal_var_pileup = normal_evidence.NonReferencePileups.get(current_call.alt_snv);
 
-            current_call.K1 = normal_nonref_pileup == null ? 0 : normal_nonref_pileup.size();
+            current_call.K1 = normal_var_pileup == null ? 0 : normal_var_pileup.size();
             current_call.N1 = normal_evidence.RefCount + current_call.K1;
 
-            current_call.K2 = nonref_pileup.getValue().size();
+            current_call.K2 = tumor_var_pileup.getValue().size();
             current_call.N2 = tumor_evidence.RefCount + current_call.K2;
 
             if (rna_normal_evidence != null) {
-                List<PileupElement> rna_normal_nonref_pileup = rna_normal_evidence.NonReferencePileups.get(current_call.alt_snv);
-                current_call.rK1 = rna_normal_nonref_pileup == null ? 0 : rna_normal_nonref_pileup.size();
+                List<PileupElement> rna_normal_var_pileup = rna_normal_evidence.NonReferencePileups.get(current_call.alt_snv);
+                current_call.rK1 = rna_normal_var_pileup == null ? 0 : rna_normal_var_pileup.size();
                 current_call.rN1 = rna_normal_evidence.RefCount + current_call.rK1;
 
             }
             if (rna_tumor_evidence != null) {
-                List<PileupElement> rna_tumor_nonref_pileup = rna_tumor_evidence.NonReferencePileups.get(current_call.alt_snv);
-                current_call.rK2 = rna_tumor_nonref_pileup == null ? 0 : rna_tumor_nonref_pileup.size();
+                List<PileupElement> rna_tumor_var_pileup = rna_tumor_evidence.NonReferencePileups.get(current_call.alt_snv);
+                current_call.rK2 = rna_tumor_var_pileup == null ? 0 : rna_tumor_var_pileup.size();
                 current_call.rN2 = rna_tumor_evidence.RefCount + current_call.rK2;
 
             }
@@ -178,7 +179,7 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
             if (current_call.alt_snv.equals(PileupEvidence.INSERTION_CHAR)) {
                 HashMap<String, Integer> hs = new HashMap<String, Integer>();
 
-                for (PileupElement p : nonref_pileup.getValue()) {
+                for (PileupElement p : tumor_var_pileup.getValue()) {
                     String seq = p.getEventBases();
 
                     if (hs.containsKey(seq)) {
@@ -231,7 +232,7 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
                 if (arguments.both_strands) {
                     boolean pos_strand = false;
                     boolean neg_strand = false;
-                    for (PileupElement p : nonref_pileup.getValue()) {
+                    for (PileupElement p : tumor_var_pileup.getValue()) {
                         if (p.getRead().getReadNegativeStrandFlag())
                             neg_strand = true;
                         else
@@ -253,17 +254,26 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
                     //ar2 = ((float) K2) / N2;
 
                     if (arguments.enable_allele_metrics) {
-                        for (PileupElement p : nonref_pileup.getValue()) {
+                        for (PileupElement p : tumor_var_pileup.getValue()) {
                             if (p.getRead().getReadNegativeStrandFlag())
                                 best_call.dna_alt_allele_forward++;
                             else
                                 best_call.dna_alt_allele_reverse++;
                         }
-                        best_call.dna_alt_allele_total = nonref_pileup.getValue().size();
+                        best_call.dna_alt_allele_total = tumor_var_pileup.getValue().size();
 
                         best_call.dna_alt_allele_forward_fraction = ((double) best_call.dna_alt_allele_forward) / best_call.dna_alt_allele_total;
                         best_call.dna_alt_allele_reverse_fraction = ((double) best_call.dna_alt_allele_reverse) / best_call.dna_alt_allele_total;
                         best_call.dna_alt_allele_total_fraction = ((double) best_call.dna_alt_allele_total) / best_call.N2;
+
+                        for (PileupElement p : tumor_evidence.ReferencePileup) {
+                            if (p.getRead().getReadNegativeStrandFlag())
+                                best_call.dna_ref_allele_forward++;
+                            else
+                                best_call.dna_ref_allele_reverse++;
+                        }
+
+                        best_call.dna_ref_allele_total = tumor_evidence.ReferencePileup.size();
                     }
                 }
             } while (false);
@@ -311,7 +321,6 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
                 new_snv.setAttribute("PILEUP2", tumor_evidence.toString());
             }
 
-
             if (arguments.enable_metrics) {
 
                 EvidenceMetrics normal_metrics = new EvidenceMetrics(normal_evidence);
@@ -330,6 +339,14 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
 
             if (arguments.enable_allele_metrics) {
                 new_snv.setAttribute("DNA_ALT_ALLELE_FORWARD", best_call.dna_alt_allele_forward);
+                new_snv.setAttribute("DNA_ALT_ALLELE_FORWARD_FRACTION", best_call.dna_alt_allele_forward_fraction);
+                new_snv.setAttribute("DNA_ALT_ALLELE_REVERSE", best_call.dna_alt_allele_reverse);
+                new_snv.setAttribute("DNA_ALT_ALLELE_REVERSE_FRACTION", best_call.dna_alt_allele_reverse_fraction);
+                new_snv.setAttribute("DNA_ALT_ALLELE_TOTAL", best_call.dna_alt_allele_total);
+                new_snv.setAttribute("DNA_ALT_ALLELE_TOTAL_FRACTION", best_call.dna_alt_allele_total_fraction);
+                new_snv.setAttribute("DNA_REF_ALLELE_FORWARD", best_call.dna_ref_allele_forward);
+                new_snv.setAttribute("DNA_REF_ALLELE_REVERSE", best_call.dna_ref_allele_reverse);
+                new_snv.setAttribute("DNA_REF_ALLELE_TOTAL", best_call.dna_ref_allele_total);
             }
 
             if (arguments.rna_call) {
