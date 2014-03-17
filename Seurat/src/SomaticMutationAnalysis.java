@@ -129,8 +129,12 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
         public int rK1 = 0, rN1 = 0, rK2 = 0, rN2 = 0;
 
         public int dna_alt_allele_forward = 0, dna_alt_allele_reverse = 0, dna_alt_allele_total = 0;
-        public double dna_alt_allele_forward_fraction = 0, dna_alt_allele_reverse_fraction = 0, dna_alt_allele_total_fraction = 0;
+        public float dna_alt_allele_forward_fraction = 0, dna_alt_allele_reverse_fraction = 0, dna_alt_allele_total_fraction = 0;
         public int dna_ref_allele_forward = 0, dna_ref_allele_reverse = 0, dna_ref_allele_total = 0;
+
+        public int rna_alt_allele_forward = 0, rna_alt_allele_reverse = 0, rna_alt_allele_total = 0;
+        public float rna_alt_allele_forward_fraction = 0, rna_alt_allele_reverse_fraction = 0, rna_alt_allele_total_fraction = 0;
+        public int rna_ref_allele_forward = 0, rna_ref_allele_reverse = 0, rna_ref_allele_total = 0;
 
         public SomaticCall(Byte alt_snv, String alt_seq) {
             this.alt_snv = alt_snv;
@@ -255,25 +259,54 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
 
                     if (arguments.enable_allele_metrics) {
                         for (PileupElement p : tumor_var_pileup.getValue()) {
-                            if (p.getRead().getReadNegativeStrandFlag())
+                            if (!p.getRead().getReadNegativeStrandFlag())
                                 best_call.dna_alt_allele_forward++;
                             else
                                 best_call.dna_alt_allele_reverse++;
                         }
                         best_call.dna_alt_allele_total = tumor_var_pileup.getValue().size();
 
-                        best_call.dna_alt_allele_forward_fraction = ((double) best_call.dna_alt_allele_forward) / best_call.dna_alt_allele_total;
-                        best_call.dna_alt_allele_reverse_fraction = ((double) best_call.dna_alt_allele_reverse) / best_call.dna_alt_allele_total;
-                        best_call.dna_alt_allele_total_fraction = ((double) best_call.dna_alt_allele_total) / best_call.N2;
-
                         for (PileupElement p : tumor_evidence.ReferencePileup) {
-                            if (p.getRead().getReadNegativeStrandFlag())
+                            if (!p.getRead().getReadNegativeStrandFlag())
                                 best_call.dna_ref_allele_forward++;
                             else
                                 best_call.dna_ref_allele_reverse++;
                         }
 
                         best_call.dna_ref_allele_total = tumor_evidence.ReferencePileup.size();
+                        best_call.dna_alt_allele_forward_fraction = ((float) best_call.dna_alt_allele_forward) / (best_call.dna_alt_allele_forward + best_call.dna_ref_allele_forward);
+                        best_call.dna_alt_allele_reverse_fraction = ((float) best_call.dna_alt_allele_reverse) / (best_call.dna_alt_allele_reverse + best_call.dna_ref_allele_reverse);
+                        best_call.dna_alt_allele_total_fraction = ((float) best_call.dna_alt_allele_total) / best_call.N2;
+
+                        //TODO: refactor
+                        if (best_call.rN2 > 0)  //RNA metrics
+                        {
+                            List<PileupElement> rna_tumor_var_pileup = rna_tumor_evidence.NonReferencePileups.get(best_call.alt_snv);
+
+                            if (rna_tumor_var_pileup != null) {
+                                for (PileupElement p : rna_tumor_var_pileup) {
+                                    if (!p.getRead().getReadNegativeStrandFlag())
+                                        best_call.rna_alt_allele_forward++;
+                                    else
+                                        best_call.rna_alt_allele_reverse++;
+                                }
+                                best_call.rna_alt_allele_total = rna_tumor_var_pileup.size();
+                            }
+
+                            for (PileupElement p : rna_tumor_evidence.ReferencePileup) {
+                                if (!p.getRead().getReadNegativeStrandFlag())
+                                    best_call.rna_ref_allele_forward++;
+                                else
+                                    best_call.rna_ref_allele_reverse++;
+                            }
+
+                            best_call.rna_ref_allele_total = rna_tumor_evidence.ReferencePileup.size();
+                            best_call.rna_alt_allele_forward_fraction = ((float) best_call.rna_alt_allele_forward) / (best_call.rna_alt_allele_forward + best_call.rna_ref_allele_forward);
+                            best_call.rna_alt_allele_reverse_fraction = ((float) best_call.rna_alt_allele_reverse) / (best_call.rna_alt_allele_reverse + best_call.rna_ref_allele_reverse);
+                            best_call.rna_alt_allele_total_fraction = ((float) best_call.rna_alt_allele_total) / best_call.rN2;
+
+                        }
+
                     }
                 }
             } while (false);
@@ -347,6 +380,18 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
                 new_snv.setAttribute("DNA_REF_ALLELE_FORWARD", best_call.dna_ref_allele_forward);
                 new_snv.setAttribute("DNA_REF_ALLELE_REVERSE", best_call.dna_ref_allele_reverse);
                 new_snv.setAttribute("DNA_REF_ALLELE_TOTAL", best_call.dna_ref_allele_total);
+
+                if (best_call.rN2 > 0) {
+                    new_snv.setAttribute("RNA_ALT_ALLELE_FORWARD", best_call.rna_alt_allele_forward);
+                    new_snv.setAttribute("RNA_ALT_ALLELE_FORWARD_FRACTION", best_call.rna_alt_allele_forward_fraction);
+                    new_snv.setAttribute("RNA_ALT_ALLELE_REVERSE", best_call.rna_alt_allele_reverse);
+                    new_snv.setAttribute("RNA_ALT_ALLELE_REVERSE_FRACTION", best_call.rna_alt_allele_reverse_fraction);
+                    new_snv.setAttribute("RNA_ALT_ALLELE_TOTAL", best_call.rna_alt_allele_total);
+                    new_snv.setAttribute("RNA_ALT_ALLELE_TOTAL_FRACTION", best_call.rna_alt_allele_total_fraction);
+                    new_snv.setAttribute("RNA_REF_ALLELE_FORWARD", best_call.rna_ref_allele_forward);
+                    new_snv.setAttribute("RNA_REF_ALLELE_REVERSE", best_call.rna_ref_allele_reverse);
+                    new_snv.setAttribute("RNA_REF_ALLELE_TOTAL", best_call.rna_ref_allele_total);
+                }
             }
 
             if (arguments.rna_call) {
