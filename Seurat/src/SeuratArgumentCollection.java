@@ -43,13 +43,13 @@ public class SeuratArgumentCollection {
     @Argument(fullName = "maximum_mismatches", shortName = "mm", required = false, doc = "Maximum number of mismatches against the reference that are allowed in a read. Set to a negative number to disable.")
     public int maximum_mismatches = 3;
 
-    @Argument(fullName = "loh", required = false, doc = "Enable detection of loss of heterozygosity (LOH) loci in the tumor.")
+    @Argument(fullName = "loh", shortName = "loh", required = false, doc = "Enable detection of loss of heterozygosity (LOH) loci in the tumor.")
     public boolean enable_loh = false;
 
-    @Argument(fullName = "structvar", required = false, doc = "Enable detection of loss of somatic structural variation (large deletions/translocations).")
+    @Argument(fullName = "structvar", shortName = "sv", required = false, doc = "Enable detection of loss of somatic structural variation (large deletions/translocations).")
     public boolean enable_structvar = false;
 
-    @Argument(fullName = "metrics", required = false, doc = "Provide additional metrics for calls (eg. median base quality, median mapping quality, median cycle).")
+    @Argument(fullName = "metrics", shortName = "metrics", required = false, doc = "Provide additional metrics for calls (eg. median base quality, median mapping quality, median cycle).")
     public boolean enable_metrics = false;
 
     @Argument(fullName = "debug", required = false, doc = "Enable debugging mode/debugging information. Do not use if you're not familiar with the effects.")
@@ -58,7 +58,7 @@ public class SeuratArgumentCollection {
     @Argument(fullName = "p_mutation", shortName = "p_m", required = false, doc = "Prior probability for somatic mutation (default = 0.0001)")
     public double p_mutation = 0.0001;
 
-    @Argument(fullName = "allele_metrics", required = false, doc = "Provide additional DNA/RNA pileup metrics.")
+    @Argument(fullName = "allele_metrics", shortName = "allele_metrics", required = false, doc = "Provide additional DNA/RNA pileup metrics.")
     public boolean enable_allele_metrics = false;
 
     @Override

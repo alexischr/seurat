@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 by The Translational Genomics Research Institute.
+ * Copyright (c) 2014 by The Translational Genomics Research Institute.
  */
 
 package org.broadinstitute.sting.gatk.walkers.tgen;
@@ -18,6 +18,7 @@ import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class MultiBAMHelper {
 
@@ -35,6 +36,8 @@ public class MultiBAMHelper {
 
     private int MinPerSampleCoverage = 6;
     private int max_mismatches = -1;
+
+    private int rna_tags = 0;
 
     public void setMaxMismatches(int maxMismatches) {
         max_mismatches = maxMismatches;
@@ -65,6 +68,10 @@ public class MultiBAMHelper {
                     }
                     sample_set.put(rg.getSample(), tag);
                     Evidence.put(tag, new PileupEvidence());
+
+                    if (tag.startsWith("rna")) {
+                        rna_tags++;
+                    }
                 }
 
             }
@@ -75,7 +82,7 @@ public class MultiBAMHelper {
 
     public boolean SetBasePileup(ReadBackedExtendedEventPileup pileup, ReferenceContext ref_context) {
 
-        if (pileup.getBases().length < sample_set.size() * MinPerSampleCoverage) //if there's not enough pileup to satisfy the minimum coverage requirement for all of the tags, quit early
+        if (rna_tags == 0 && pileup.getBases().length < sample_set.size() * MinPerSampleCoverage) //if there's not enough pileup to satisfy the minimum coverage requirement for all of the tags, quit early
             //note: this assumes non-overlapping tags!
             return false;
 
@@ -98,8 +105,8 @@ public class MultiBAMHelper {
             Evidence.get(sample_set.get(sample)).Add(p);
         }
 
-        for (PileupEvidence bam_pileup : Evidence.values()) {
-            if (bam_pileup.Pileup.size() < MinPerSampleCoverage) {
+        for (Map.Entry<String, PileupEvidence> bam_pileup : Evidence.entrySet()) {
+            if (!bam_pileup.getKey().startsWith("rna") && bam_pileup.getValue().Pileup.size() < MinPerSampleCoverage) {
                 return false;
             }
         }
@@ -109,7 +116,7 @@ public class MultiBAMHelper {
 
     public boolean SetBasePileup(ReadBackedPileup pileup, ReferenceContext ref_context) {
 
-        if (pileup.getBases().length < sample_set.size() * MinPerSampleCoverage) //if there's not enough pileup to satisfy the minimum coverage requirement for all of the tags, quit early
+        if (rna_tags == 0 && pileup.getBases().length < sample_set.size() * MinPerSampleCoverage) //if there's not enough pileup to satisfy the minimum coverage requirement for all of the tags, quit early
             //note: this assumes non-overlapping tags!
             return false;
 
@@ -132,8 +139,8 @@ public class MultiBAMHelper {
             Evidence.get(sample_set.get(sample)).Add(p);
         }
 
-        for (PileupEvidence bam_pileup : Evidence.values()) {
-            if (bam_pileup.Pileup.size() < MinPerSampleCoverage) {
+        for (Map.Entry<String, PileupEvidence> bam_pileup : Evidence.entrySet()) {
+            if (!bam_pileup.getKey().startsWith("rna") && bam_pileup.getValue().Pileup.size() < MinPerSampleCoverage) {
                 return false;
             }
 

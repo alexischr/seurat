@@ -68,7 +68,7 @@ public class Seurat extends LocusWalker<Integer, Long> {
             doc = " Name of RefSeq transcript annotation file. If specified, gene-wide and exon-wide events can be detected, and SNVs/LOH events will be annotated with the gene name.", required = false)
     String RefseqFileName = null;
 
-    @Argument(fullName = "indels", required = false, doc = "Indel support")
+    @Argument(fullName = "indels", shortName = "indels", required = false, doc = "Indel support")
     boolean DETECT_INDELS = false;
 
     private MultiBAMHelper multibam_helper = null;
