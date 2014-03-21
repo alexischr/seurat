@@ -30,14 +30,18 @@ public class MultiBAMHelper {
         return MinPerSampleCoverage;
     }
 
-    public void setMinPerSampleCoverage(int minPerSampleCoverage) {
+    public void setMinPerSampleCoverage(int minPerSampleCoverage)
+    {
         MinPerSampleCoverage = minPerSampleCoverage;
+        minimum_total_pileup = total_inputs * MinPerSampleCoverage;
     }
 
     private int MinPerSampleCoverage = 6;
     private int max_mismatches = -1;
 
     private int rna_tags = 0;
+    private int total_inputs = 0;
+    private int minimum_total_pileup = 0;
 
     public void setMaxMismatches(int maxMismatches) {
         max_mismatches = maxMismatches;
@@ -53,6 +57,7 @@ public class MultiBAMHelper {
         Evidence = new HashMap<String, PileupEvidence>();
 
         for (SAMReaderID rid : engine.getReadsDataSource().getReaderIDs()) {
+            total_inputs++;
             Tags tags = rid.getTags();
             if (tags.getPositionalTags().isEmpty())
                 throw new UserException.BadInput("This module requires that input BAMs are tagged (ie. -I:dna_normal normal.bam -I:dna_tumor tumor.bam): " +
@@ -66,6 +71,7 @@ public class MultiBAMHelper {
                     if (existing_tag != null && !existing_tag.equals(tag)) {
                         throw new UserException.BadInput(String.format("Sample '%s' is being assigned to tag '%s', but has already been assigned to tag '%s'. This is often a result of tumor/normal BAMs using the same sample IDs in their @RG tags. \n", rg.getSample(), tag, existing_tag));
                     }
+
                     sample_set.put(rg.getSample(), tag);
                     Evidence.put(tag, new PileupEvidence());
 
@@ -82,7 +88,7 @@ public class MultiBAMHelper {
 
     public boolean SetBasePileup(ReadBackedExtendedEventPileup pileup, ReferenceContext ref_context) {
 
-        if (rna_tags == 0 && pileup.getBases().length < sample_set.size() * MinPerSampleCoverage) //if there's not enough pileup to satisfy the minimum coverage requirement for all of the tags, quit early
+        if (rna_tags == 0 && pileup.getBases().length < minimum_total_pileup) //if there's not enough pileup to satisfy the minimum coverage requirement for all of the tags, quit early
             //note: this assumes non-overlapping tags!
             return false;
 
@@ -116,7 +122,7 @@ public class MultiBAMHelper {
 
     public boolean SetBasePileup(ReadBackedPileup pileup, ReferenceContext ref_context) {
 
-        if (rna_tags == 0 && pileup.getBases().length < sample_set.size() * MinPerSampleCoverage) //if there's not enough pileup to satisfy the minimum coverage requirement for all of the tags, quit early
+        if (rna_tags == 0 && pileup.getBases().length < minimum_total_pileup) //if there's not enough pileup to satisfy the minimum coverage requirement for all of the tags, quit early
             //note: this assumes non-overlapping tags!
             return false;
 

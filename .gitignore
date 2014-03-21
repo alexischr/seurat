@@ -28,3 +28,5 @@ out/
 #OS X
 .DS_Store
 
+
+.idea/runConfigurations/Seurat__paper_test_data_.xml
