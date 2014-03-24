@@ -92,8 +92,16 @@ public class MultiBAMHelper {
             //note: this assumes non-overlapping tags!
             return false;
 
+        byte ref_base;
+
+        if (pileup.getNumberOfInsertions() > 0) {
+            //pileup is actually of the *next* base
+            ref_base = ref_context.getBases()[101];
+        } else
+            ref_base = ref_context.getBase();
+
         for (PileupEvidence bam_pileup : Evidence.values()) {
-            bam_pileup.Reset(ref_context.getBase());
+            bam_pileup.Reset(ref_base);
         }
 
         for (ExtendedEventPileupElement p : pileup.toExtendedIterable()) {

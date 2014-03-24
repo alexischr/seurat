@@ -41,6 +41,10 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
     final double prior_homvar = 0.0005;
     final double prior_het = 0.001;
 
+    //pileup minimums, for optimization/skipping
+    final int min_ref_on_normal = 1;
+    final int min_var_on_tumor = 1;
+
     double prior_snv = 0.01;
     double prior_sindel = 0.000001;
 
@@ -149,6 +153,9 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
 
     @Override
     public void map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, List<GeneContext> ann_contexts) {
+        if (normal_evidence.RefCount < min_ref_on_normal)
+            return;
+
         GenomeLoc loc = context.getLocation();
 
         SomaticCall best_call = new SomaticCall("");
@@ -158,6 +165,8 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
         for (Map.Entry<Byte, List<PileupElement>> tumor_var_pileup : tumor_evidence.NonReferencePileups.entrySet()) {
             SomaticCall current_call = new SomaticCall(tumor_var_pileup.getKey(), "");
 
+            //System.out.printf("Call for %c vs %c\n", ref.getBase(), current_call.alt_snv );
+
             List<PileupElement> normal_var_pileup = normal_evidence.NonReferencePileups.get(current_call.alt_snv);
 
             current_call.K1 = normal_var_pileup == null ? 0 : normal_var_pileup.size();
@@ -165,6 +174,10 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
 
             current_call.K2 = tumor_var_pileup.getValue().size();
             current_call.N2 = tumor_evidence.RefCount + current_call.K2;
+
+            if (current_call.K2 < min_var_on_tumor)
+                continue;
+
 
             if (rna_normal_evidence != null) {
                 List<PileupElement> rna_normal_var_pileup = rna_normal_evidence.NonReferencePileups.get(current_call.alt_snv);
@@ -222,7 +235,7 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
 
 
             if (arguments.enable_debug) {
-                System.err.printf("N=%d/%d -- T=%d/%d --- p_snv %f\n", current_call.K1, current_call.N1, current_call.K2, current_call.N2, current_call.p_snv);
+                System.out.printf("N=%d/%d -- T=%d/%d --- p_snv %f\n", current_call.K1, current_call.N1, current_call.K2, current_call.N2, current_call.p_snv);
             }
 
             boolean call_approved = true;
@@ -327,7 +340,7 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
                 best_call.ref_seq = String.format("%c%c", ref.getBases()[99], ref.getBases()[100]);
             } else if (best_call.alt_snv.equals(PileupEvidence.INSERTION_CHAR)) {
                 event_name = "somatic_insertion";
-                alt = String.format("%c%s", normal_evidence.RefBase, best_call.alt_seq);
+                alt = String.format("%c%s", ref.getBases()[100], best_call.alt_seq);
             } else {
                 event_name = "somatic_SNV";
                 alt = new String(new byte[]{best_call.alt_snv});

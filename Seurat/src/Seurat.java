@@ -84,6 +84,8 @@ public class Seurat extends LocusWalker<Integer, Long> {
 
     List<RegionalAnalysisWalker> nt_walkers = new ArrayList<RegionalAnalysisWalker>();
 
+    private int current_pos = -1;
+
     @Override
     public void initialize() {
         //prepare multi-BAM support
@@ -225,12 +227,30 @@ public class Seurat extends LocusWalker<Integer, Long> {
     public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         //skip slow BAM separation if minimum coverage for each sample is impossible to be covered
 
+        /*if (current_pos ==  ref.getLocus().getStart() )
+        {
+            System.out.printf("Pos %d already visited\n", current_pos);
+        }
+
+        if (ref.getLocus().getStart() != ref.getLocus().getStop())
+        {
+            System.out.printf(">1 locus\n");
+        }*/
+
+        current_pos = ref.getLocus().getStart();
+
         if (arguments.enable_debug) {
-            System.err.printf("%s - %d\n", ref.getLocus().toString(), context.hasExtendedEventPileup() ? context.getExtendedEventPileup().depthOfCoverage() : context.getBasePileup().depthOfCoverage());
+            System.out.printf("%s - %d\n", ref.getLocus().toString(), context.hasExtendedEventPileup() ? context.getExtendedEventPileup().depthOfCoverage() : context.getBasePileup().depthOfCoverage());
         }
 
         if (context.hasExtendedEventPileup()) {
+            //HACK: extended pileups with deletions
+
+            if (arguments.enable_debug) {
+                System.out.printf("%d insertions, %d deletions, ref %s\n", context.getExtendedEventPileup().getNumberOfInsertions(), context.getExtendedEventPileup().getNumberOfDeletions(), new String(ref.getBases()));
+            }
             return multibam_helper.SetBasePileup(context.getExtendedEventPileup().getBaseAndMappingFilteredPileup(MIN_BASE_QUALITY_SCORE, MIN_MAPPING_QUALITY_SCORE), ref);
+
         } else {
             return multibam_helper.SetBasePileup(context.getBasePileup().getBaseAndMappingFilteredPileup(MIN_BASE_QUALITY_SCORE, MIN_MAPPING_QUALITY_SCORE), ref);
         }
@@ -354,6 +374,7 @@ public class Seurat extends LocusWalker<Integer, Long> {
     public boolean generateExtendedEvents() {
         return DETECT_INDELS;
     }
+
 
     /**
      * Combines the result of the latest map with the accumulator.  In inductive terms,
