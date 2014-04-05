@@ -244,12 +244,12 @@ public class Seurat extends LocusWalker<Integer, Long> {
         }
 
         if (context.hasExtendedEventPileup()) {
-            //HACK: extended pileups with deletions
+            boolean contains_insertions = (context.getExtendedEventPileup().getNumberOfInsertions() > 0);
 
             if (arguments.enable_debug) {
                 System.out.printf("%d insertions, %d deletions, ref %s\n", context.getExtendedEventPileup().getNumberOfInsertions(), context.getExtendedEventPileup().getNumberOfDeletions(), new String(ref.getBases()));
             }
-            return multibam_helper.SetBasePileup(context.getExtendedEventPileup().getBaseAndMappingFilteredPileup(MIN_BASE_QUALITY_SCORE, MIN_MAPPING_QUALITY_SCORE), ref);
+            return multibam_helper.SetBasePileup(context.getExtendedEventPileup().getBaseAndMappingFilteredPileup(MIN_BASE_QUALITY_SCORE, MIN_MAPPING_QUALITY_SCORE), ref, contains_insertions);
 
         } else {
             return multibam_helper.SetBasePileup(context.getBasePileup().getBaseAndMappingFilteredPileup(MIN_BASE_QUALITY_SCORE, MIN_MAPPING_QUALITY_SCORE), ref);

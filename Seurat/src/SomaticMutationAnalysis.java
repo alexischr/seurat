@@ -45,7 +45,7 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
     final int min_ref_on_normal = 1;
     final int min_var_on_tumor = 1;
 
-    double prior_snv = 0.01;
+    double prior_snv = 0; // set by argument
     double prior_sindel = 0.000001;
 
     public boolean initialize(Map<String, PileupEvidence> Evidence, SeuratArgumentCollection argumentCollection, GeneContext context) {
@@ -165,7 +165,9 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
         for (Map.Entry<Byte, List<PileupElement>> tumor_var_pileup : tumor_evidence.NonReferencePileups.entrySet()) {
             SomaticCall current_call = new SomaticCall(tumor_var_pileup.getKey(), "");
 
-            //System.out.printf("Call for %c vs %c\n", ref.getBase(), current_call.alt_snv );
+            if (arguments.enable_debug) {
+                System.out.printf("Call for %c vs %c:\n", ref.getBase(), current_call.alt_snv);
+            }
 
             List<PileupElement> normal_var_pileup = normal_evidence.NonReferencePileups.get(current_call.alt_snv);
 

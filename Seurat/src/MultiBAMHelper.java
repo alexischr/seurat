@@ -86,7 +86,7 @@ public class MultiBAMHelper {
 
     }
 
-    public boolean SetBasePileup(ReadBackedExtendedEventPileup pileup, ReferenceContext ref_context) {
+    public boolean SetBasePileup(ReadBackedExtendedEventPileup pileup, ReferenceContext ref_context, boolean contains_insertions) {
 
         if (rna_tags == 0 && pileup.getBases().length < minimum_total_pileup) //if there's not enough pileup to satisfy the minimum coverage requirement for all of the tags, quit early
             //note: this assumes non-overlapping tags!
@@ -94,8 +94,7 @@ public class MultiBAMHelper {
 
         byte ref_base;
 
-        if (pileup.getNumberOfInsertions() > 0) {
-            //pileup is actually of the *next* base
+        if (contains_insertions) { //pileup is actually of the *next* base
             ref_base = ref_context.getBases()[101];
         } else
             ref_base = ref_context.getBase();
