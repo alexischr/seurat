@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/Seurat">
+      <sourceFolder url="file://$MODULE_DIR$/Seurat/src" isTestSource="false" packagePrefix="org.broadinstitute.sting.gatk.walkers.tgen" />
+    </content>
+    <orderEntry type="jdk" jdkName="1.6" jdkType="JavaSDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="JSC" level="project" />
+    <orderEntry type="library" name="Commons Math" level="project" />
+    <orderEntry type="library" name="GenomeAnalysisTK" level="project" />
+  </component>
+</module>
+
