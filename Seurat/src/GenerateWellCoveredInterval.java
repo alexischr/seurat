@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 by The Translational Genomics Research Institute.
+ * Copyright (c) 2014 by The Translational Genomics Research Institute.
  */
 
 package org.broadinstitute.sting.gatk.walkers.tgen;
@@ -57,7 +57,7 @@ public class GenerateWellCoveredInterval extends LocusWalker<Integer, Long> {
     public void initialize() {
 
         ai_list = new ArrayList<PileupEvidence>(Arrays.asList(DNA_Normal, DNA_Tumor));
-        multibam_helper = new MultiBAMHelper(getToolkit());
+        multibam_helper = new MultiBAMHelper(getToolkit(), false);
 
         multibam_helper.setMinPerSampleCoverage(MIN_COVERAGE);
     }

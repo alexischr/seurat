@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2013 by The Translational Genomics Research Institute.
+ * Copyright (c) 2014 by The Translational Genomics Research Institute.
  */
 
 package org.broadinstitute.sting.gatk.walkers.tgen;
 
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -95,7 +96,7 @@ public class PileupEvidence {
         return s.toString();
     }
 
-    public void Add(PileupElement p) {
+    public void Add(PileupElement p, boolean clean_only) {
 
         Byte base = p.getBase();
 
@@ -111,6 +112,17 @@ public class PileupEvidence {
             } else { //we don't know how to handle any other events at the moment!!
 
             }
+        }
+
+        if (clean_only) {
+            //no more than one mismatch (either base mismatch or indel)
+
+            int changes = ((AlignmentUtils.MismatchCount) p.getRead().getTemporaryAttribute("NMM")).numMismatches + (p.getRead().getAlignmentBlocks().size() - 1);
+            //System.out.printf("%d mismatches, %d align blocks\n", ((AlignmentUtils.MismatchCount) p.getRead().getTemporaryAttribute("NMM")).numMismatches, (p.getRead().getAlignmentBlocks().size()));
+
+            if (changes > 2)
+                return;
+
         }
 
         Pileup.add(p);

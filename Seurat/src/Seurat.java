@@ -89,7 +89,7 @@ public class Seurat extends LocusWalker<Integer, Long> {
     @Override
     public void initialize() {
         //prepare multi-BAM support
-        multibam_helper = new MultiBAMHelper(getToolkit());
+        multibam_helper = new MultiBAMHelper(getToolkit(), arguments.require_clean_reads);
         multibam_helper.setMinPerSampleCoverage(MIN_COVERAGE);
         multibam_helper.setMaxMismatches(arguments.maximum_mismatches);
 

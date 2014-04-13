@@ -61,6 +61,11 @@ public class SeuratArgumentCollection {
     @Argument(fullName = "allele_metrics", shortName = "allele_metrics", required = false, doc = "Provide additional DNA/RNA pileup metrics.")
     public boolean enable_allele_metrics = false;
 
+    @Argument(fullName = "clean_reads", shortName = "clean", required = false, doc = "Require that reads do not have more than one variance.")
+    public boolean require_clean_reads = false;
+
+
+
     @Override
     public String toString() {
         return String.format("snv_alpha=%d;snv_beta=%d;expected_insert_size=%d;min_event_quality=%.1f;maximum_mismatches=%d", beta_alpha,

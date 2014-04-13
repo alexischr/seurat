@@ -38,10 +38,12 @@ public class MultiBAMHelper {
 
     private int MinPerSampleCoverage = 6;
     private int max_mismatches = -1;
+    private boolean require_clean = false;
 
     private int rna_tags = 0;
     private int total_inputs = 0;
     private int minimum_total_pileup = 0;
+
 
     public void setMaxMismatches(int maxMismatches) {
         max_mismatches = maxMismatches;
@@ -52,7 +54,7 @@ public class MultiBAMHelper {
     }
 
 
-    public MultiBAMHelper(GenomeAnalysisEngine engine) {
+    public MultiBAMHelper(GenomeAnalysisEngine engine, boolean require_clean) {
         sample_set = new HashMap<String, String>();
         Evidence = new HashMap<String, PileupEvidence>();
 
@@ -83,7 +85,7 @@ public class MultiBAMHelper {
             }
 
         }
-
+        this.require_clean = require_clean;
     }
 
     public boolean SetBasePileup(ReadBackedExtendedEventPileup pileup, ReferenceContext ref_context, boolean contains_insertions) {
@@ -115,7 +117,7 @@ public class MultiBAMHelper {
 
             String sample = read.getReadGroup().getSample();
 
-            Evidence.get(sample_set.get(sample)).Add(p);
+            Evidence.get(sample_set.get(sample)).Add(p, require_clean);
         }
 
         for (Map.Entry<String, PileupEvidence> bam_pileup : Evidence.entrySet()) {
@@ -149,7 +151,7 @@ public class MultiBAMHelper {
 
             String sample = read.getReadGroup().getSample();
 
-            Evidence.get(sample_set.get(sample)).Add(p);
+            Evidence.get(sample_set.get(sample)).Add(p, require_clean);
         }
 
         for (Map.Entry<String, PileupEvidence> bam_pileup : Evidence.entrySet()) {
