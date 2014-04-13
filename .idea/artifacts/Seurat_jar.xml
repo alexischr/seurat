@@ -6,8 +6,9 @@
         <element id="file-copy" path="$PROJECT_DIR$/Seurat/src/META-INF/MANIFEST.MF" />
       </element>
       <element id="module-output" name="Seurat" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/lib/jsc.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$PROJECT_DIR$/lib/GenomeAnalysisTK-1.5-32-g2761da9/GenomeAnalysisTK.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/commons-math3-3.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/jsc.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>

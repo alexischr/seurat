@@ -48,6 +48,10 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
     double prior_snv = 0; // set by argument
     double prior_sindel = 0.000001;
 
+    int last_pos = 0;
+    boolean last_pos_called = false;
+    int last_pos_K1 = 0;
+
     public boolean initialize(Map<String, PileupEvidence> Evidence, SeuratArgumentCollection argumentCollection, GeneContext context) {
         arguments = argumentCollection;
         normal_evidence = Evidence.get("dna_normal");
@@ -153,6 +157,19 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
 
     @Override
     public void map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, List<GeneContext> ann_contexts) {
+
+        boolean reevaluate_call = false; // reevaluate call if call was made in this position && there's an extended pileup
+        boolean extended_call = false; //call should consider variant pileup from previous call (on same location)
+
+        int current_pos = context.getLocation().getStart();
+
+        if (current_pos == last_pos)
+            extended_call = true;
+        if (current_pos == last_pos && last_pos_called) //we have an extended pileup
+            reevaluate_call = true;
+
+        last_pos_called = false;
+
         if (normal_evidence.RefCount < min_ref_on_normal)
             return;
 
@@ -171,8 +188,23 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
 
             List<PileupElement> normal_var_pileup = normal_evidence.NonReferencePileups.get(current_call.alt_snv);
 
-            current_call.K1 = normal_var_pileup == null ? 0 : normal_var_pileup.size();
+            current_call.K1 = normal_evidence.VariantCount;
             current_call.N1 = normal_evidence.RefCount + current_call.K1;
+
+            if (extended_call) {
+                //System.out.printf("Extended event K1+=%d\n", last_pos_K1);
+                current_call.K1 += last_pos_K1;
+            }
+
+            if (reevaluate_call) {
+                double updated_ref_p = GetReferenceProbability(current_call.K1, current_call.N1, arguments.beta_alpha, arguments.beta_beta);
+                if (updated_ref_p < min_event_p) {
+                    //System.out.printf("Caught bad call on extended pileup: %.3f ref prob on %s:%d!\n", updated_ref_p, loc.getContig(), loc.getStart() );
+                    Event e = temp_events.remove(temp_events.size() - 1);
+                    break;
+                    //System.out.printf("%d -- %.3f\n", e.getLocation().getStart(), e.getProbability());
+                }
+            }
 
             current_call.K2 = tumor_var_pileup.getValue().size();
             current_call.N2 = tumor_evidence.RefCount + current_call.K2;
@@ -424,8 +456,10 @@ public class SomaticMutationAnalysis extends RegionalAnalysisWalker {
             }
 
             temp_events.add(new_snv);
+            last_pos_called = true;
         }
-
+        last_pos = current_pos;
+        last_pos_K1 = normal_evidence.VariantCount;
     }
 
     private static class EvidenceMetrics {
